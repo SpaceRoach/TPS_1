@@ -14,6 +14,9 @@ public class StateControllerBase
     {
         states.Add(stateName, state);
         state.stateController = this;
+        state.actionMap = inputActionMap;
+        state.transform = transform;
+        state.Init();
     }
     public virtual void ChangeState(string stateName)
     {
@@ -39,8 +42,25 @@ public class StateControllerBase
         activeState.OnEnter();
     }
 
+    public virtual void ReadInput()
+    {
+
+    }
+
+    public InputActionMap inputActionMap
+    {
+        get => _inputActionMap;
+        set => _inputActionMap = value;
+    }
+
+    public Transform transform
+    {
+        get => _transform;
+        set => _transform = value;
+    }
+
     protected State activeState;
     protected Dictionary<string, State> states;
-    protected InputActionMap inputActionMap;
-    protected Transform transform;
+    protected InputActionMap _inputActionMap;
+    protected Transform _transform;
 }

@@ -1,27 +1,18 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class JumpState : State
 {
-    private InputAction iaForward, iaBack, iaLeft, iaRight;
-
-    private float gravity = 15.0f;
-    private float jumpSpeed = 50.0f;
-    private Vector3 hVel;
-
     public override void Init()
     {
-        iaForward = _actionMap["forward"];
-        iaBack = _actionMap["backward"];
-        iaLeft = _actionMap["left"];
-        iaRight = _actionMap["right"];
+        stateMachine = (MovementStateMachine)stateController;
+        worldMask = LayerMask.GetMask("world");
     }
 
     public override void OnEnter()
     {
         //Debug.Log("Entering jump state");
         jumpSpeed = 10.0f;
-        hVel = ((LocomotionFSM)stateController).playerHVel;
+        hVel = stateMachine.playerHVel;
     }
 
     public override void OnExit()
@@ -30,40 +21,61 @@ public class JumpState : State
 
     public override void Update()
     {
-        Vector3 horizMovement = Vector3.zero;
+        Vector3 moveDir = stateMachine.moveDir;
+        float effHSpeed = stateMachine.moveSpeedInAir * Time.deltaTime;
+        float jumpSign = Mathf.Sign(jumpSpeed);
+        Vector3 vertDisplacement = jumpSpeed * Time.deltaTime * Vector3.up;
 
-        if (iaForward.ReadValue<float>() == 1.0f)
-        {
-            horizMovement += Vector3.forward;
-        }
-        if (iaBack.ReadValue<float>() == 1.0f)
-        {
-            horizMovement += Vector3.back;
-        }
-        if (iaLeft.ReadValue<float>() == 1.0f)
-        {
-            horizMovement += Vector3.left;
-        }
-        if (iaRight.ReadValue<float>() == 1.0f)
-        {
-            horizMovement += Vector3.right;
-        }
+        Vector3 rayOrig = transform.position + (jumpSign * Vector3.up);
+        Ray groundCheckRay = new Ray(rayOrig,
+                                    jumpSign * Vector3.up);
 
-        LayerMask worldMask = LayerMask.GetMask("world");
-        bool isHit = Physics.Raycast(_transform.position + Vector3.down, 
-                                    Mathf.Sign(jumpSpeed) * Vector3.up, 
-                                    out RaycastHit hitInfo, 
+        bool isGroundHit = Physics.Raycast(groundCheckRay, 
+                                    out RaycastHit groundHitInfo, 
                                     Mathf.Abs(jumpSpeed) * Time.deltaTime,
-                                    worldMask
-                                    );
-        Vector3 moveDist = jumpSpeed * Time.deltaTime * Vector3.up;
-        if (isHit)
+                                    worldMask);
+        if (isGroundHit)
         {
             //Debug.Log("hit " + hitInfo.transform.name + " at " + jumpSpeed);
-            moveDist = hitInfo.distance * Mathf.Sign(jumpSpeed) * Vector3.up;
+            vertDisplacement = groundHitInfo.distance * Mathf.Sign(jumpSpeed) * Vector3.up;
             ChangeState("move");
         }
-        _transform.position += (moveDist + (5.0f * Time.deltaTime * horizMovement.normalized));
+        transform.position += vertDisplacement;
+        Vector3 rayOrigin = transform.position + 0.5f * moveDir;
+        Ray worldCheckRay = new Ray(rayOrigin, moveDir);
+        bool isWorldHit = Physics.Raycast(worldCheckRay,
+                                            out RaycastHit worldHitInfo,
+                                            effHSpeed, worldMask);
+
+        Ray worldCheckRay2 = new Ray(rayOrigin + Vector3.up, moveDir);
+        bool isWorldHit2 = Physics.Raycast(worldCheckRay2,
+                                            out RaycastHit worldHitInfo2,
+                                            effHSpeed, worldMask);
+
+        Ray worldCheckRay3 = new Ray(rayOrigin + Vector3.down, moveDir);
+        bool isWorldHit3 = Physics.Raycast(worldCheckRay3,
+                                            out RaycastHit worldHitInfo3,
+                                            effHSpeed, worldMask);
+        Debug.DrawRay(transform.position + 0.5f * moveDir, moveDir, Color.red);
+        Debug.DrawRay(transform.position + Vector3.up, moveDir, Color.red);
+        Debug.DrawRay(transform.position + Vector3.down, moveDir, Color.red);
+        if (isWorldHit || isWorldHit2 || isWorldHit3)
+        {
+            float distToMove = Mathf.Min(Mathf.Min(worldHitInfo.distance, worldHitInfo2.distance), worldHitInfo3.distance);
+            transform.position += (distToMove) * moveDir;
+        }
+
+        else
+        {
+            transform.position += effHSpeed * moveDir;
+        }
+
         jumpSpeed -= gravity * Time.deltaTime;
     }
+
+    private MovementStateMachine stateMachine;
+    private float gravity = 15.0f;
+    private float jumpSpeed = 50.0f;
+    private Vector3 hVel;
+    LayerMask worldMask;
 }

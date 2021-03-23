@@ -14,10 +14,8 @@ public abstract class State
 
     public Transform transform
     {
-        set
-        {
-            _transform = value;
-        }
+        get => _transform;
+        set => _transform = value;
     }
 
     protected StateControllerBase _stateController;
