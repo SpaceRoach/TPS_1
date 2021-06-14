@@ -33,6 +33,7 @@ public abstract class State
     public abstract void OnEnter();
     public abstract void OnExit();
     public abstract void Update();
+    public abstract void FixedUpdate();
     protected void ChangeState(string stateName)
     {
         _stateController.ChangeState(stateName);

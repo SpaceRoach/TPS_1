@@ -36,6 +36,11 @@ public class StateControllerBase
         activeState.Update();
     }
 
+    public virtual void FixedUpdate()
+    {
+        activeState.FixedUpdate();
+    }
+
     public virtual void Init(State state)
     {
         activeState = state;
